@@ -35,17 +35,21 @@ int RC2 = A7;		// remote channel 2
 int RC3 = A8;		// remote channel 3
 
 int16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
-int16_t temp;								// temperature
-uint16_t temp_timer;					// temperature measurement timer
-uint16_t temp_interval = 10000;        // the interval we want to get an updated temperature in milliseconds
+int16_t temp;									// temperature
+uint16_t temp_timer;							// temperature measurement timer
+uint16_t temp_interval = 10000;        			// the interval we want to get an updated temperature in milliseconds
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
 
+//////////////////////////////////////////////
+///////////// UTILITY  FUNCTIONS  ////////////
+//////////////////////////////////////////////
+
 void blinkLED(byte targetPin, int numBlinks, int blinkRate) {
   for (int i=0; i < numBlinks; i++) {
-    digitalWrite(targetPin, HIGH);   // sets the LED on
+    digitalWrite(targetPin, HIGH);   	  // sets the LED on
     delay(blinkRate);                     // waits for blinkRate milliseconds
-    digitalWrite(targetPin, LOW);    // sets the LED off
+    digitalWrite(targetPin, LOW);    	  // sets the LED off
     delay(blinkRate);
   }
 }
@@ -53,6 +57,10 @@ void blinkLED(byte targetPin, int numBlinks, int blinkRate) {
 void dmpDataReady() {
   mpuInterrupt = true;
 }
+
+//////////////////////////////////////////////
+///////////// INIT  FUNCTIONS  ///////////////
+//////////////////////////////////////////////
 
 void initMPU(){
   Wire.begin();
@@ -92,7 +100,6 @@ void initPID(){
   myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
 }
 
-
 void initRC(){
 	RC_Channel rc;
 	RC1 = rc.setPin(RC1);
@@ -100,6 +107,16 @@ void initRC(){
 	RC3 = rc.setPin(RC3);
 }
 
+void motorStop(){
+	analogWrite(MOTOR_FWD_L_PIN,0);
+	analogWrite(MOTOR_FWD_R_PIN,0);
+	analogWrite(MOTOR_BCK_L_PIN,0);
+	analogWrite(MOTOR_BCK_R_PIN,0);
+}
+
+//////////////////////////////////////////////
+///////////// UPDATE  FUNCTIONS  /////////////
+//////////////////////////////////////////////
 
 void updateControllerInput(){
 //  Setpoint_Pitch = map(ctrl_ch_1_input,0,1023,MAX_PITCH*-1,MAX_PITCH);
@@ -149,10 +166,10 @@ void updatePID(){
   mBL=(negRoll+negPitch)*0.5;
   mBR=(negRoll+posPitch)*0.5;
 
-  mFL = constrain(mFL,HOVERSPEED,MAXSPEED);
-  mFR = constrain(mFR,HOVERSPEED,MAXSPEED);
-  mBL = constrain(mBL,HOVERSPEED,MAXSPEED);
-  mBR = constrain(mBR,HOVERSPEED,MAXSPEED);
+  mFL = constrain(mFL,MINSPEED,MAXSPEED);
+  mFR = constrain(mFR,MINSPEED,MAXSPEED);
+  mBL = constrain(mBL,MINSPEED,MAXSPEED);
+  mBR = constrain(mBR,MINSPEED,MAXSPEED);
 }
 
 void updateMotors(){
@@ -196,6 +213,10 @@ void updateTemperature(){
   temp = (Wire.read()<<8|Wire.read())/340.00+36.53;  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
   temp = (temp-32)*0.56;
 }
+
+//////////////////////////////////////////////
+/////////////// MAIN  FUNCTIONS  /////////////
+//////////////////////////////////////////////
 
 void setup() {
   Serial.begin(115200);
