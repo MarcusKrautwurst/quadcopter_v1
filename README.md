@@ -10,6 +10,10 @@ http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calcula
   - [ ] Implement motor arming
   - [ ] Speed + Pitch/Roll control
 - [ ] Include Barometer in I2C devices
+- 
+
+
+Taco Bells
 
 
 
