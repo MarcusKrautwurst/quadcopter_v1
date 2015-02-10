@@ -3,7 +3,10 @@
 
 // IMU config
 MPU6050 mpu(I2C_ADRESS_MPU);
-int test;
+SFE_BMP180 pressure;
+
+double baseline; // baseline pressure
+
 double Setpoint_Pitch, Input_Pitch, Output_Pitch;
 double Setpoint_Roll, Input_Roll, Output_Roll;
 
@@ -38,6 +41,7 @@ int16_t boot_delay = 2000;                  	// delay for arming the motors : de
 int16_t temp;									// temperature
 uint16_t temp_timer;							// temperature measurement timer
 uint16_t temp_interval = 10000;        			// the interval we want to get an updated temperature in milliseconds
+int16_t rel_alltitude;
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
 
@@ -58,9 +62,30 @@ void dmpDataReady() {
   mpuInterrupt = true;
 }
 
+double getPressure() {
+  char status;
+  double T,P,p0,a;
+  status = pressure.startTemperature();
+  if (status != 0) {
+    delay(status);
+    status = pressure.getTemperature(T);
+    if (status != 0) {
+      status = pressure.startPressure(3);
+      if (status != 0) {
+        delay(status);
+        status = pressure.getPressure(P,T);
+        if (status != 0) {
+          return(P);
+        }
+      }
+    }
+  }
+}
+
 //////////////////////////////////////////////
 ///////////// INIT  FUNCTIONS  ///////////////
 //////////////////////////////////////////////
+
 
 void initMPU(){
   Wire.begin();
@@ -77,6 +102,17 @@ void initMPU(){
     dmpReady = true;
     packetSize = mpu.dmpGetFIFOPacketSize();
   }
+
+}
+
+void initBarometer(){
+  if (!pressure.begin()){
+    Serial.println("BMP180 init fail");
+    //while(1); at the moment we simply ignore this, because we dont have the device yet
+  }
+  baseline = getPressure();
+  Serial.println("baseline pressure: ");
+  Serial.print(baseline);
 }
 
 void initMotors(){
@@ -145,6 +181,12 @@ void updateYPR(){
     blinkState = !blinkState;
     digitalWrite(LED_PIN, blinkState);
   }
+}
+
+void updateAltittude(){
+  double P;
+  P = getPressure();
+  rel_alltitude = pressure.altitude(P,baseline);  
 }
 
 void updatePID(){
@@ -228,6 +270,7 @@ void setup() {
 
 void loop() {
   updateYPR();
+  updateAltittude();
   updateControllerInput();
   updatePID();
 //  if ((unsigned long)(millis()-temp_timer)>=temp_interval){
