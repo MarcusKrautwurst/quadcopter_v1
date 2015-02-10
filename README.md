@@ -12,8 +12,3 @@ http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calcula
 - [x] Include Barometer in I2C devices
 
 
-
-Taco Bells
-
-
-
