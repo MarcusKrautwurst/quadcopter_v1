@@ -4,8 +4,9 @@
 // - extern variable definitions
 // In the appropriate section
 
-#ifndef _test_H_
-#define _test_H_
+#ifndef _Quadcopter_v1_H_
+#define _Quadcopter_v2_H_
+
 #if defined(ARDUINO) && ARDUINO >= 100
       #include "Arduino.h"
     #else
@@ -17,7 +18,7 @@
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "Wire.h"
 #include "PID_v1.h"
-#include "RC.h"
+//#include "RC.h"
 #include "config.h"
 #include "SFE_BMP180.h"
 

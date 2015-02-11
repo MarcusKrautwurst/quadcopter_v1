@@ -5,7 +5,7 @@
 MPU6050 mpu(I2C_ADRESS_MPU);
 SFE_BMP180 pressure;
 
-double baseline; // baseline pressure
+double altittude_baseline; // baseline pressure
 
 double Setpoint_Pitch, Input_Pitch, Output_Pitch;
 double Setpoint_Roll, Input_Roll, Output_Roll;
@@ -33,9 +33,7 @@ float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 float yprLast[3] = {0.0f, 0.0f, 0.0f};
 
-int RC1 = A6;		// remote channel 1
-int RC2 = A7;		// remote channel 2
-int RC3 = A8;		// remote channel 3
+int ch[4];  //Rx channels
 
 int16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
 int16_t temp;									// temperature
@@ -64,7 +62,7 @@ void dmpDataReady() {
 
 double getPressure() {
   char status;
-  double T,P,p0,a;
+  double T,P;
   status = pressure.startTemperature();
   if (status != 0) {
     delay(status);
@@ -110,9 +108,9 @@ void initBarometer(){
     Serial.println("BMP180 init fail");
     //while(1); at the moment we simply ignore this, because we dont have the device yet
   }
-  baseline = getPressure();
+  altittude_baseline = getPressure();
   Serial.println("baseline pressure: ");
-  Serial.print(baseline);
+  Serial.print(altittude_baseline);
 }
 
 void initMotors(){
@@ -136,12 +134,7 @@ void initPID(){
   myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
 }
 
-void initRC(){
-	RC_Channel rc;
-	RC1 = rc.setPin(RC1);
-	RC2 = rc.setPin(RC2);
-	RC3 = rc.setPin(RC3);
-}
+
 
 void motorStop(){
 	analogWrite(MOTOR_FWD_L_PIN,0);
@@ -155,10 +148,31 @@ void motorStop(){
 //////////////////////////////////////////////
 
 void updateControllerInput(){
-//  Setpoint_Pitch = map(ctrl_ch_1_input,0,1023,MAX_PITCH*-1,MAX_PITCH);
-//  Setpoint_Roll = map(ctrl_ch_2_input,0,1023,MAX_ROLL*-1,MAX_ROLL);
-  Setpoint_Pitch = 0;
-  Setpoint_Roll = 0;
+
+	ch[0] = pulseIn(RC1_PIN,HIGH,25000);
+	ch[1] = pulseIn(RC2_PIN,HIGH,25000);
+	ch[2] = pulseIn(RC3_PIN,HIGH,25000);
+//	blinkLED(LED_PIN,1,1);	// with this we can visualise RC signals
+
+	 //Input Signal trimming
+	for (int i=0; i<=8; i++) {
+		if (ch[i] <= RXLo){
+			ch[i] = RXLo;
+		}
+
+		if (ch[i] <= RXDeadHi && ch[i] >= RXDeadLo) {
+		ch[i] = RXMid;
+		}
+
+		if (ch[i] >= RXHi) {
+		 ch[i] = RXHi;
+		}
+	}
+
+	//  Setpoint_Pitch = map(ch[0],0,1023,MAX_PITCH*-1,MAX_PITCH);
+	//  Setpoint_Roll = map(ch[1],0,1023,MAX_ROLL*-1,MAX_ROLL);
+	Setpoint_Pitch = 0;
+	Setpoint_Roll = 0;
 }
 
 void updateYPR(){
@@ -179,21 +193,21 @@ void updateYPR(){
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
     blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);
+//    digitalWrite(LED_PIN, blinkState);
   }
 }
 
 void updateAltittude(){
   double P;
   P = getPressure();
-  rel_alltitude = pressure.altitude(P,baseline);  
+  rel_alltitude = pressure.altitude(P,altittude_baseline);
 }
 
 void updatePID(){
   Input_Roll = ypr[2] * 180/M_PI;
   Input_Pitch = ypr[1] * 180/M_PI;
 
-  // Compute pid values
+  // Compute PID values
   myPID_P.Compute();
   myPID_R.Compute();
 
@@ -262,7 +276,7 @@ void updateTemperature(){
 
 void setup() {
   Serial.begin(115200);
-  initRC();
+//  initRC();
   initMPU();
   initMotors();
   initPID();
