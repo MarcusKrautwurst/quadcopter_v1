@@ -1,5 +1,5 @@
 # Quadcopter v1
-The end of humanity
+[![based on Arduino Mega](https://cdn.sparkfun.com//assets/parts/6/4/3/3/11061-01b.jpg)  
 
 ## FIRST:
 Use this to to calibrate MPU9150 offsets
