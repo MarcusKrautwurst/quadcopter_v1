@@ -1,5 +1,5 @@
 # Arduino Mega Quadcopter
-[logo]: http://033310b.netsolhost.com/Arduino/wp-content/uploads/2011/02/arduino-banner.jpg
+![Arduino Mega Quadcopter](http://033310b.netsolhost.com/Arduino/wp-content/uploads/2011/02/arduino-banner.jpg)
 
 ## FIRST:
 Use this to to calibrate MPU9150 offsets
