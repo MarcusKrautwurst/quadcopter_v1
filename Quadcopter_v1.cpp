@@ -89,10 +89,10 @@ void initMPU(){
   Wire.begin();
   mpu.initialize();
   devStatus = mpu.dmpInitialize();
-  mpu.setXGyroOffset(220); // 220
-  mpu.setYGyroOffset(-1057);  // 76 // -1057
-  mpu.setZGyroOffset(31); // -85 // 31
-  mpu.setZAccelOffset(1281); // 1281 // 1688 factory default for my test chip
+//  mpu.setXGyroOffset(220); // 220
+//  mpu.setYGyroOffset(-1057);  // 76 // -1057
+//  mpu.setZGyroOffset(31); // -85 // 31
+//  mpu.setZAccelOffset(1281); // 1281 // 1688 factory default for my test chip
   if(devStatus == 0){
     mpu.setDMPEnabled(true);
     attachInterrupt(0, dmpDataReady, RISING);
@@ -134,8 +134,6 @@ void initPID(){
   myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
 }
 
-
-
 void motorStop(){
 	analogWrite(MOTOR_FWD_L_PIN,0);
 	analogWrite(MOTOR_FWD_R_PIN,0);
@@ -152,7 +150,7 @@ void updateControllerInput(){
 	ch[0] = pulseIn(RC1_PIN,HIGH,25000);
 	ch[1] = pulseIn(RC2_PIN,HIGH,25000);
 	ch[2] = pulseIn(RC3_PIN,HIGH,25000);
-//	blinkLED(LED_PIN,1,1);	// with this we can visualise RC signals
+	blinkLED(LED_PIN,1,1);	// with this we can visualise RC signals
 
 	 //Input Signal trimming
 	for (int i=0; i<=8; i++) {
