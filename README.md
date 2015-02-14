@@ -12,3 +12,5 @@ http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calcula
 - [x] Include Barometer in I2C devices
 
 
+### Schematic:
+![schematic](https://github.com/MarcusKrautwurst/quadcopter_v1/blob/master/schematics/schematic.png)
