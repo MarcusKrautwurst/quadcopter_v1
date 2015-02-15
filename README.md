@@ -3,8 +3,8 @@
 ***
 ## Software 
 ### First:
-- [ ] Calibrate IMU [[Link](http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calculate-mpu6050-offsets/)
-]
+- [ ] Calibrate IMU [Link](http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calculate-mpu6050-offsets/)
+
 ### To-Do:
 - [ ] Implement Full RC handling
   - [ ] Implement motor arming
