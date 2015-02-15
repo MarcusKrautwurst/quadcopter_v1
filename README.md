@@ -12,8 +12,10 @@ http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calcula
   - [ ] Speed + Pitch/Roll control
 - [x] Include Barometer in I2C devices
 
+
 ## Hardware
+## How to build 
+You can find instructions in the [wiki](https://github.com/MarcusKrautwurst/quadcopter_v1/wiki) 
+
 ### Schematic:
 ![schematic](https://github.com/MarcusKrautwurst/quadcopter_v1/blob/master/schematics/schematic.png)
-### Breadboard:
-![breadboard](https://github.com/MarcusKrautwurst/quadcopter_v1/blob/master/schematics/breadboard.png)
