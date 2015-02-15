@@ -10,6 +10,7 @@
   - [ ] Implement motor arming
   - [ ] Speed + Pitch/Roll control
 - [x] Include Barometer in I2C devices
+- [ ] SD card logging
 
 
 ## Hardware
