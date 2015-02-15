@@ -3,8 +3,7 @@
 ***
 ## Software 
 ### First:
-Use this to to calibrate MPU9150 offsets
-http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calculate-mpu6050-offsets/
+Use [this](http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatically-calculate-mpu6050-offsets/) to to calibrate MPU9150 offsets
 
 ### To-Do:
 - [ ] Implement Full RC handling
