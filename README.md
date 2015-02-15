@@ -14,7 +14,7 @@ Use [this](http://www.i2cdevlib.com/forums/topic/96-arduino-sketch-to-automatica
 
 ## Hardware
 ## How to build 
-You can find instructions in the [wiki](https://github.com/MarcusKrautwurst/quadcopter_v1/wiki) 
+You can find instructions in the [wiki](https://github.com/MarcusKrautwurst/quadcopter_v1/wiki/3.-Build) 
 
 ### Schematic:
 ![schematic](https://github.com/MarcusKrautwurst/quadcopter_v1/blob/master/schematics/schematic.png)
