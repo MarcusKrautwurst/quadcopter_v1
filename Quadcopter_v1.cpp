@@ -13,6 +13,8 @@ double Setpoint_Roll, Input_Roll, Output_Roll;
 PID myPID_P(&Input_Pitch, &Output_Pitch, &Setpoint_Pitch,PITCH_P_VAL,PITCH_I_VAL,PITCH_D_VAL, DIRECT);
 PID myPID_R(&Input_Roll, &Output_Roll, &Setpoint_Roll,ROLL_P_VAL,ROLL_I_VAL,ROLL_D_VAL, DIRECT);
 
+//Log mylog(SD_PIN);	// SD Card logging
+
 // MPU control/status vars
 bool blinkState = false;
 bool dmpReady = false;  // set true if DMP init was successful
@@ -133,6 +135,20 @@ void initPID(){
   myPID_P.SetOutputLimits(MAX_PITCH*-1,MAX_PITCH);
   myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
 }
+
+void initLogging(){
+  // make sure that the default chip select pin is set to
+  // output, even if you don't use it:
+  pinMode(SD_TMP_PIN, OUTPUT);
+
+  // see if the card is present and can be initialized:
+  while (!SD.begin(SD_PIN)) {
+	Serial.println("Card failed, or not present");
+	// don't do anything more:
+	return;
+  }
+}
+
 
 void motorStop(){
 	analogWrite(MOTOR_FWD_L_PIN,0);
@@ -259,6 +275,32 @@ void updateDebugView(){
 //  Serial.print("\n");	// only for readability in serial monitor, turn this off for running the external debug application
 }
 
+void updateLog(){
+	String dataPitch = String((int)Input_Pitch, (unsigned char)DEC);
+	String dataRoll = String((int)Input_Roll, (unsigned char)DEC);
+	String dataTemp = String((int)temp, (unsigned char)DEC);
+	File logPitch = SD.open("pitch.csv", O_WRITE | O_CREAT);
+	File logRoll = SD.open("roll.csv", O_WRITE | O_CREAT);
+	if (logPitch) {
+		logPitch.print(dataPitch);
+		logPitch.print(",");
+		logPitch.close();
+	}
+
+	if (logRoll) {
+		logRoll.print(dataRoll);
+		logRoll.print(",");
+		logRoll.close();
+	}
+}
+
+//void updateLog(){
+//	mylog.addEntry(0,Input_Pitch);
+//	mylog.addEntry(1,Input_Roll);
+//	mylog.writeMasterFile();
+//}
+
+
 void updateTemperature(){
   Wire.requestFrom(I2C_ADRESS_MPU,14,true);
   Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
@@ -274,10 +316,10 @@ void updateTemperature(){
 
 void setup() {
   Serial.begin(115200);
-//  initRC();
   initMPU();
   initMotors();
   initPID();
+  initLogging();
 }
 
 void loop() {
@@ -285,12 +327,14 @@ void loop() {
   updateAltittude();
   updateControllerInput();
   updatePID();
-//  if ((unsigned long)(millis()-temp_timer)>=temp_interval){
-//	  temp_timer = millis();
-//	  updateTemperature();
-//  }
+  updateLog();
+  if ((unsigned long)(millis()-temp_timer)>=temp_interval){
+	  temp_timer = millis();
+	  updateTemperature();
+  }
   updateMotors();
-  updateDebugView();
+  updateLog();
+//  updateDebugView();
 }
 
 

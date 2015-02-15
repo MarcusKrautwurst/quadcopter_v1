@@ -21,6 +21,8 @@
 //#include "RC.h"
 #include "config.h"
 #include "SFE_BMP180.h"
+//#include "log.h"
+#include "SD.h"
 
 //end of add your includes here
 #ifdef __cplusplus

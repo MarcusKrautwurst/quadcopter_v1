@@ -1,12 +1,17 @@
 #ifndef _config_H_
 #define _config_H_
 
+///////////// IMPORTANT NOTES /////////////
+// It is very important to not use PIN 10 for anything, its unfortunately reserved for the SD library
+
 ///////////// I2C  CONFIG  //////////////
 #define I2C_ADRESS_MPU 0x69
 
 ///////////// PIN CONFIG /////////////
 #define LED_PIN 13
-#define MOTOR_FWD_L_PIN 10
+#define SD_PIN 53
+#define SD_TMP_PIN 10
+#define MOTOR_FWD_L_PIN 12
 #define MOTOR_FWD_R_PIN 11
 #define MOTOR_BCK_L_PIN 6
 #define MOTOR_BCK_R_PIN 9
