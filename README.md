@@ -15,7 +15,7 @@
 
 ## Hardware
 ## How to build 
-You can find instructions in the [wiki](https://github.com/MarcusKrautwurst/quadcopter_v1/wiki/3.-Build) 
+You can find instructions in the [wiki](https://github.com/MarcusKrautwurst/quadcopter_v1/wiki/1.-Introduction) 
 
 ### Schematic:
 ![schematic](https://github.com/MarcusKrautwurst/quadcopter_v1/blob/master/schematics/schematic.png)
