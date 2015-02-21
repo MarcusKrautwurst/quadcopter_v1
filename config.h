@@ -17,9 +17,9 @@
 #define MOTOR_BCK_R_PIN 9
 #define MOTOR_TEST_PIN 5
 
-const int RC1_PIN = 22;			// remote channel 1
-const int RC2_PIN = 23;			// remote channel 2
-const int RC3_PIN = 24;			// remote channel 3
+const int RC1_PIN = 36;			// remote channel 1
+const int RC2_PIN = 36;			// remote channel 2
+const int RC3_PIN = 32;			// remote channel 3
 
 ///////////// FLIGHT CONFIG /////////////
 #define MAX_PITCH 30
@@ -37,6 +37,10 @@ const int RC3_PIN = 24;			// remote channel 3
 #define ROLL_P_VAL 0.168    //0.168 // 2
 #define ROLL_I_VAL 0.654    //0.654 // 5
 #define ROLL_D_VAL 0.008    //0.008 // 1
+
+#define ALTITUDE_P_VAL 2    //0.168 // 2
+#define ALTITUDE_I_VAL 5    //0.654 // 5
+#define ALTITUDE_D_VAL 1    //0.008 // 1
 
 #define YAW_P_VAL 0.00    //2
 #define YAW_I_VAL 0.00    //5
