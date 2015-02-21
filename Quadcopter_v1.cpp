@@ -5,13 +5,14 @@
 MPU6050 mpu(I2C_ADRESS_MPU);
 SFE_BMP180 pressure;
 
-double altittude_baseline; // baseline pressure
 
 double Setpoint_Pitch, Input_Pitch, Output_Pitch;
 double Setpoint_Roll, Input_Roll, Output_Roll;
+double Setpoint_Altitude, Input_Altitude, Output_Altitude;
 
 PID myPID_P(&Input_Pitch, &Output_Pitch, &Setpoint_Pitch,PITCH_P_VAL,PITCH_I_VAL,PITCH_D_VAL, DIRECT);
 PID myPID_R(&Input_Roll, &Output_Roll, &Setpoint_Roll,ROLL_P_VAL,ROLL_I_VAL,ROLL_D_VAL, DIRECT);
+PID myPID_A(&Input_Altitude, &Output_Altitude, &Setpoint_Altitude,ALTITUDE_P_VAL,ALTITUDE_I_VAL,ALTITUDE_D_VAL, DIRECT);
 
 //Log mylog(SD_PIN);	// SD Card logging
 
@@ -40,8 +41,17 @@ int ch[4];  //Rx channels
 int16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
 int16_t temp;									// temperature
 uint16_t temp_timer;							// temperature measurement timer
-uint16_t temp_interval = 10000;        			// the interval we want to get an updated temperature in milliseconds
-int16_t rel_alltitude;
+uint16_t temp_interval = 1000;        			// the interval we want to get an updated temperature in milliseconds
+
+uint16_t alt_timer;								// altitude  measurement timer
+uint16_t alt_interval = 500;        			// the interval we want to get an updated altitude in milliseconds
+
+double baseline; 								// baseline pressure
+double default_elevation = 13.93;				// elevation of the location
+double altitude;								// altitude
+double absolute_altitude;
+bool holdAltitude = true;						// is hold altitude selected?
+
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
 
@@ -62,29 +72,33 @@ void dmpDataReady() {
   mpuInterrupt = true;
 }
 
-double getPressure() {
+double getPressure()
+{
   char status;
   double T,P;
+
   status = pressure.startTemperature();
-  if (status != 0) {
+  if (status != 0){
     delay(status);
     status = pressure.getTemperature(T);
-    if (status != 0) {
+    if (status != 0){
       status = pressure.startPressure(3);
-      if (status != 0) {
+      if (status != 0){
         delay(status);
         status = pressure.getPressure(P,T);
-        if (status != 0) {
-          return(P);
-        }
-      }
-    }
-  }
+        if (status != 0){
+        	temp = T;
+        	return(P);
+        } else return 0;}
+      else return 0;}
+    else return 0;}
+  else return 0;
 }
 
 //////////////////////////////////////////////
 ///////////// INIT  FUNCTIONS  ///////////////
 //////////////////////////////////////////////
+
 
 
 void initMPU(){
@@ -106,13 +120,11 @@ void initMPU(){
 }
 
 void initBarometer(){
-  if (!pressure.begin()){
-    Serial.println("BMP180 init fail");
-    //while(1); at the moment we simply ignore this, because we dont have the device yet
+  if (pressure.begin()){
+  } else {
+	while(1); // Pause forever.
   }
-  altittude_baseline = getPressure();
-  Serial.println("baseline pressure: ");
-  Serial.print(altittude_baseline);
+  baseline = getPressure();
 }
 
 void initMotors(){
@@ -128,12 +140,18 @@ void initMotors(){
 }
 
 void initPID(){
+
   Input_Pitch = 0;
   Input_Roll = 0;
   myPID_P.SetMode(AUTOMATIC);
   myPID_R.SetMode(AUTOMATIC);
   myPID_P.SetOutputLimits(MAX_PITCH*-1,MAX_PITCH);
   myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
+
+//  if (holdAltitude){
+//	  Input_Altitude = 0;
+//  }
+//  myPID_A.SetMode(AUTOMATIC);
 }
 
 void initLogging(){
@@ -148,7 +166,6 @@ void initLogging(){
 	return;
   }
 }
-
 
 void motorStop(){
 	analogWrite(MOTOR_FWD_L_PIN,0);
@@ -207,14 +224,15 @@ void updateYPR(){
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
     blinkState = !blinkState;
-//    digitalWrite(LED_PIN, blinkState);
+    digitalWrite(LED_PIN, blinkState);
   }
 }
 
-void updateAltittude(){
-  double P;
-  P = getPressure();
-  rel_alltitude = pressure.altitude(P,altittude_baseline);
+void updateAltitude(){
+	double P;
+	P = getPressure();
+	altitude = pressure.altitude(P,baseline);
+	absolute_altitude=default_elevation+altitude;
 }
 
 void updatePID(){
@@ -224,6 +242,7 @@ void updatePID(){
   // Compute PID values
   myPID_P.Compute();
   myPID_R.Compute();
+  myPID_A.Compute();
 
   float posPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,0,255);
   float posRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,0,255);
@@ -266,49 +285,35 @@ void updateDebugView(){
   Serial.print(",");
   Serial.print(setpoint_r_debug,DEC);
   Serial.print(",");
-  Serial.print(PITCH_P_VAL,DEC);
+  Serial.print(PITCH_P_VAL);
   Serial.print(",");
-  Serial.print(PITCH_I_VAL,DEC);
+  Serial.print(PITCH_I_VAL);
   Serial.print(",");
-  Serial.print(PITCH_D_VAL,DEC);
+  Serial.print(PITCH_D_VAL);
+  Serial.print(",");
+  Serial.print(altitude);
+  Serial.print(",");
+  Serial.print(absolute_altitude);
+  Serial.print(",");
+  Serial.print(freeMemory());
   Serial.print("-");
-//  Serial.print("\n");	// only for readability in serial monitor, turn this off for running the external debug application
 }
 
 void updateLog(){
 	String dataPitch = String((int)Input_Pitch, (unsigned char)DEC);
 	String dataRoll = String((int)Input_Roll, (unsigned char)DEC);
-	String dataTemp = String((int)temp, (unsigned char)DEC);
-	File logPitch = SD.open("pitch.csv", O_WRITE | O_CREAT);
-	File logRoll = SD.open("roll.csv", O_WRITE | O_CREAT);
-	if (logPitch) {
-		logPitch.print(dataPitch);
-		logPitch.print(",");
-		logPitch.close();
-	}
-
-	if (logRoll) {
-		logRoll.print(dataRoll);
-		logRoll.print(",");
-		logRoll.close();
+	File mylog = SD.open("data.csv", O_WRITE | O_CREAT);
+	if (mylog) {
+		mylog.print(dataPitch);
+		mylog.print(",");
+		while ( mylog.read() != '\n' );
+		mylog.print(dataRoll);
+		mylog.print(",");
+		mylog.close();
 	}
 }
 
-//void updateLog(){
-//	mylog.addEntry(0,Input_Pitch);
-//	mylog.addEntry(1,Input_Roll);
-//	mylog.writeMasterFile();
-//}
 
-
-void updateTemperature(){
-  Wire.requestFrom(I2C_ADRESS_MPU,14,true);
-  Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
-  Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-  Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
-  temp = (Wire.read()<<8|Wire.read())/340.00+36.53;  // 0x41 (TEMP_OUT_H) & 0x42 (TEMP_OUT_L)
-  temp = (temp-32)*0.56;
-}
 
 //////////////////////////////////////////////
 /////////////// MAIN  FUNCTIONS  /////////////
@@ -316,25 +321,24 @@ void updateTemperature(){
 
 void setup() {
   Serial.begin(115200);
+  initBarometer();
   initMPU();
   initMotors();
   initPID();
-  initLogging();
+//  initLogging();
 }
 
 void loop() {
-  updateYPR();
-  updateAltittude();
-  updateControllerInput();
-  updatePID();
-  updateLog();
-  if ((unsigned long)(millis()-temp_timer)>=temp_interval){
-	  temp_timer = millis();
-	  updateTemperature();
+//	updateControllerInput();
+  if ((unsigned long)(millis()-alt_timer)>=alt_interval){
+	  alt_timer = millis();
+	  updateAltitude();
   }
-  updateMotors();
-  updateLog();
-//  updateDebugView();
+	updateYPR();
+	updatePID();
+	updateMotors();
+	//  updateLog();
+	updateDebugView();
 }
 
 

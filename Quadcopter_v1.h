@@ -23,6 +23,7 @@
 #include "SFE_BMP180.h"
 //#include "log.h"
 #include "SD.h"
+#include "MemoryFree.h"
 
 //end of add your includes here
 #ifdef __cplusplus
@@ -45,7 +46,7 @@ void updateYPR();
 void updatePID();
 void updateMotors();
 void updateDebugView();
-void updateAltittude();
+void updateAltitude();
 void updateTemperature();
 
 //Do not add code below this line
