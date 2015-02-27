@@ -21,6 +21,7 @@ PID myPID_A(&Input_Altitude, &Output_Altitude, &Setpoint_Altitude,ALTITUDE_P_VAL
 
 
 
+
 //Log mylog(SD_PIN);	// SD Card logging
 
 // MPU control/status vars
@@ -45,8 +46,9 @@ float yprLast[3] = {0.0f, 0.0f, 0.0f};
 
 int ch[4];  //Rx channels
 
-int16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
-int16_t temp;									// temperature
+uint16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
+uint16_t acceleration							// this is the speed multiplier
+uint16_t temp;									// temperature
 uint16_t temp_timer;							// temperature measurement timer
 uint16_t temp_interval = 1000;        			// the interval we want to get an updated temperature in milliseconds
 
@@ -55,9 +57,9 @@ uint16_t alt_interval = 500;        			// the interval we want to get an updated
 
 double baseline; 								// baseline pressure
 double default_elevation = 13.93;				// elevation of the location
-double altitude;								// altitude
-double absolute_altitude;
-bool holdAltitude = true;						// is hold altitude selected?
+double altitude;								// relative altitude
+double absolute_altitude;						// absolute altitude
+bool holdAltitude = false;						// is hold altitude selected?
 
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
@@ -107,6 +109,7 @@ double getPressure()
 //////////////////////////////////////////////
 
 void initESCs(){
+	// hardcoded, remove once we have the RC
 	motor1.write(160);
 	motor2.write(160);
 	motor3.write(160);
@@ -120,7 +123,7 @@ void initESCs(){
 }
 
 void initMPU(){
-  Wire.begin();
+  //Wire.begin();	// dont think we need this
   mpu.initialize();
   devStatus = mpu.dmpInitialize();
 //  mpu.setXGyroOffset(220); // 220
@@ -137,7 +140,7 @@ void initMPU(){
 
 }
 
-void initBarometer(){
+void initAltimeter(){
   if (pressure.begin()){
   } else {
 	while(1); // Pause forever.
@@ -159,18 +162,12 @@ void initMotors(){
 }
 
 void initPID(){
-
   Input_Pitch = 0;
   Input_Roll = 0;
   myPID_P.SetMode(AUTOMATIC);
   myPID_R.SetMode(AUTOMATIC);
   myPID_P.SetOutputLimits(MAX_PITCH*-1,MAX_PITCH);
   myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
-
-//  if (holdAltitude){
-//	  Input_Altitude = 0;
-//  }
-//  myPID_A.SetMode(AUTOMATIC);
 }
 
 //void initLogging(){
@@ -198,7 +195,6 @@ void motorStop(){
 //////////////////////////////////////////////
 
 void updateControllerInput(){
-
 	ch[0] = pulseIn(RC1_PIN,HIGH,25000);
 	ch[1] = pulseIn(RC2_PIN,HIGH,25000);
 	ch[2] = pulseIn(RC3_PIN,HIGH,25000);
@@ -218,9 +214,9 @@ void updateControllerInput(){
 		 ch[i] = RXHi;
 		}
 	}
-
-	//  Setpoint_Pitch = map(ch[0],0,1023,MAX_PITCH*-1,MAX_PITCH);
-	//  Setpoint_Roll = map(ch[1],0,1023,MAX_ROLL*-1,MAX_ROLL);
+	// once we have the RC, uncomment this 
+	//  Setpoint_Pitch = map(ch[0],RXLo,RXHi,MAX_PITCH*-1,MAX_PITCH);
+	//  Setpoint_Roll = map(ch[1],RXLo,RXHi,MAX_ROLL*-1,MAX_ROLL);
 	Setpoint_Pitch = 0;
 	Setpoint_Roll = 0;
 }
@@ -247,15 +243,21 @@ void updateYPR(){
   }
 }
 
-void updateAltitude(){
+void updateAltimeter(){
 	double P;
 	P = getPressure();
 	altitude = pressure.altitude(P,baseline);
-	if (altitude <= 0.1){
+	
+	if (altitude <= 0.1){		// this might be a bad idea, since we dont know if we get lower than start height
 		altitude=0.0;
 	}
 	absolute_altitude=default_elevation+altitude;
-}
+
+	if (holdAltitude){
+		Input_Altitude = altitude;
+		myPID_A.SetMode(AUTOMATIC);
+		myPID_A.Compute();
+	}}
 
 void updatePID(){
   Input_Roll = ypr[2] * 180/M_PI;
@@ -266,10 +268,11 @@ void updatePID(){
   myPID_R.Compute();
   myPID_A.Compute();
 
-  float posPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,0,255);
-  float posRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,0,255);
-  float negPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,255,0);
-  float negRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,255,0);
+
+  float posPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,MINSPEED,MAXSPEED);
+  float posRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,MINSPEED,MAXSPEED);
+  float negPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,MAXSPEED,MINSPEED);
+  float negRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,MAXSPEED,MINSPEED);
 
 
   mFL=(posRoll+negPitch)*0.5;
@@ -343,10 +346,10 @@ void updateDebugView(){
 
 void setup() {
   Serial.begin(115200);
-  initESCs();
-  initBarometer();
+  initAltimeter();
   initMPU();
   initMotors();
+  initESCs();
   initPID();
 //  initLogging();
 }
@@ -355,7 +358,7 @@ void loop() {
 //	updateControllerInput();
   if ((unsigned long)(millis()-alt_timer)>=alt_interval){
 	  alt_timer = millis();
-	  updateAltitude();
+	  updateAltimeter();
   }
 	updateYPR();
 	updatePID();
