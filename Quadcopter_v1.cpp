@@ -1,9 +1,14 @@
 #include "Quadcopter_v1.h"
 #include "config.h"
 
-// IMU config
-MPU6050 mpu(I2C_ADRESS_MPU);
-SFE_BMP180 pressure;
+
+MPU6050 mpu(I2C_ADRESS_MPU);	// IMU
+SFE_BMP180 pressure;			// Barometric sensor
+
+Servo motor1;
+Servo motor2;
+Servo motor3;
+Servo motor4;
 
 
 double Setpoint_Pitch, Input_Pitch, Output_Pitch;
@@ -13,6 +18,8 @@ double Setpoint_Altitude, Input_Altitude, Output_Altitude;
 PID myPID_P(&Input_Pitch, &Output_Pitch, &Setpoint_Pitch,PITCH_P_VAL,PITCH_I_VAL,PITCH_D_VAL, DIRECT);
 PID myPID_R(&Input_Roll, &Output_Roll, &Setpoint_Roll,ROLL_P_VAL,ROLL_I_VAL,ROLL_D_VAL, DIRECT);
 PID myPID_A(&Input_Altitude, &Output_Altitude, &Setpoint_Altitude,ALTITUDE_P_VAL,ALTITUDE_I_VAL,ALTITUDE_D_VAL, DIRECT);
+
+
 
 //Log mylog(SD_PIN);	// SD Card logging
 
@@ -99,7 +106,18 @@ double getPressure()
 ///////////// INIT  FUNCTIONS  ///////////////
 //////////////////////////////////////////////
 
-
+void initESCs(){
+	motor1.write(160);
+	motor2.write(160);
+	motor3.write(160);
+	motor4.write(160);
+	delay(2000);
+	motor1.write(60);
+	motor2.write(60);
+	motor3.write(60);
+	motor4.write(60);
+	delay(2000);
+}
 
 void initMPU(){
   Wire.begin();
@@ -129,11 +147,12 @@ void initBarometer(){
 
 void initMotors(){
   pinMode(LED_PIN, OUTPUT);
-  pinMode(MOTOR_TEST_PIN, OUTPUT);
-  pinMode(MOTOR_FWD_L_PIN, OUTPUT);
-  pinMode(MOTOR_FWD_R_PIN, OUTPUT);
-  pinMode(MOTOR_BCK_L_PIN, OUTPUT);
-  pinMode(MOTOR_BCK_R_PIN, OUTPUT);
+
+  motor1.attach(MOTOR_FWD_L_PIN);
+  motor2.attach(MOTOR_FWD_R_PIN);
+  motor3.attach(MOTOR_BCK_L_PIN);
+  motor4.attach(MOTOR_BCK_R_PIN);
+
   delay(boot_delay*0.5);
   blinkLED(LED_PIN,3,100);
   delay(boot_delay*0.5);
@@ -154,18 +173,18 @@ void initPID(){
 //  myPID_A.SetMode(AUTOMATIC);
 }
 
-void initLogging(){
-  // make sure that the default chip select pin is set to
-  // output, even if you don't use it:
-  pinMode(SD_TMP_PIN, OUTPUT);
-
-  // see if the card is present and can be initialized:
-  while (!SD.begin(SD_PIN)) {
-	Serial.println("Card failed, or not present");
-	// don't do anything more:
-	return;
-  }
-}
+//void initLogging(){
+//  // make sure that the default chip select pin is set to
+//  // output, even if you don't use it:
+//  pinMode(SD_TMP_PIN, OUTPUT);
+//
+//  // see if the card is present and can be initialized:
+//  while (!SD.begin(SD_PIN)) {
+//	Serial.println("Card failed, or not present");
+//	// don't do anything more:
+//	return;
+//  }
+//}
 
 void motorStop(){
 	analogWrite(MOTOR_FWD_L_PIN,0);
@@ -232,6 +251,9 @@ void updateAltitude(){
 	double P;
 	P = getPressure();
 	altitude = pressure.altitude(P,baseline);
+	if (altitude <= 0.1){
+		altitude=0.0;
+	}
 	absolute_altitude=default_elevation+altitude;
 }
 
@@ -262,10 +284,10 @@ void updatePID(){
 }
 
 void updateMotors(){
-  analogWrite(MOTOR_FWD_L_PIN,mFL);
-  analogWrite(MOTOR_FWD_R_PIN,mFR);
-  analogWrite(MOTOR_BCK_L_PIN,mBL);
-  analogWrite(MOTOR_BCK_R_PIN,mBR);
+	motor1.write(mFL);
+	motor2.write(mFR);
+	motor3.write(mBL);
+	motor4.write(mBR);
 }
 
 void updateDebugView(){
@@ -299,19 +321,19 @@ void updateDebugView(){
   Serial.print("-");
 }
 
-void updateLog(){
-	String dataPitch = String((int)Input_Pitch, (unsigned char)DEC);
-	String dataRoll = String((int)Input_Roll, (unsigned char)DEC);
-	File mylog = SD.open("data.csv", O_WRITE | O_CREAT);
-	if (mylog) {
-		mylog.print(dataPitch);
-		mylog.print(",");
-		while ( mylog.read() != '\n' );
-		mylog.print(dataRoll);
-		mylog.print(",");
-		mylog.close();
-	}
-}
+//void updateLog(){
+//	String dataPitch = String((int)Input_Pitch, (unsigned char)DEC);
+//	String dataRoll = String((int)Input_Roll, (unsigned char)DEC);
+//	File mylog = SD.open("data.csv", O_WRITE | O_CREAT);
+//	if (mylog) {
+//		mylog.print(dataPitch);
+//		mylog.print(",");
+//		while ( mylog.read() != '\n' );
+//		mylog.print(dataRoll);
+//		mylog.print(",");
+//		mylog.close();
+//	}
+//}
 
 
 
@@ -321,6 +343,7 @@ void updateLog(){
 
 void setup() {
   Serial.begin(115200);
+  initESCs();
   initBarometer();
   initMPU();
   initMotors();

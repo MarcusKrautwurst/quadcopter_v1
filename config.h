@@ -11,11 +11,10 @@
 #define LED_PIN 13
 #define SD_PIN 53
 #define SD_TMP_PIN 10
-#define MOTOR_FWD_L_PIN 12
-#define MOTOR_FWD_R_PIN 11
-#define MOTOR_BCK_L_PIN 6
-#define MOTOR_BCK_R_PIN 9
-#define MOTOR_TEST_PIN 5
+#define MOTOR_FWD_L_PIN 3
+#define MOTOR_FWD_R_PIN 4
+#define MOTOR_BCK_L_PIN 5
+#define MOTOR_BCK_R_PIN 6
 
 const int RC1_PIN = 36;			// remote channel 1
 const int RC2_PIN = 36;			// remote channel 2

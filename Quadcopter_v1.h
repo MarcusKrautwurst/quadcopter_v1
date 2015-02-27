@@ -5,7 +5,7 @@
 // In the appropriate section
 
 #ifndef _Quadcopter_v1_H_
-#define _Quadcopter_v2_H_
+#define _Quadcopter_v1_H_
 
 #if defined(ARDUINO) && ARDUINO >= 100
       #include "Arduino.h"
@@ -21,9 +21,11 @@
 //#include "RC.h"
 #include "config.h"
 #include "SFE_BMP180.h"
+#include "Servo.h"
 //#include "log.h"
-#include "SD.h"
+//#include "SD.h"
 #include "MemoryFree.h"
+
 
 //end of add your includes here
 #ifdef __cplusplus
