@@ -2,7 +2,8 @@
 #define _config_H_
 
 ///////////// IMPORTANT NOTES /////////////
-// It is very important to not use PIN 10 for anything, its unfortunately reserved for the SD library
+// It is very important to not use PIN 10 for anything, 
+// its unfortunately reserved for the SD library
 
 ///////////// I2C  CONFIG  //////////////
 #define I2C_ADRESS_MPU 0x69
@@ -26,7 +27,7 @@ const int RC3_PIN = 32;			// remote channel 3
 #define MAX_YAW 180
 
 #define MINSPEED 20
-#define MAXSPEED 255
+#define MAXSPEED 180
 
 //////////////// PID CONFIG /////////////
 #define PITCH_P_VAL 0.168  //0.168 // 0.5
