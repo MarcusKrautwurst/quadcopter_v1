@@ -47,13 +47,16 @@ float yprLast[3] = {0.0f, 0.0f, 0.0f};
 int ch[4];  //Rx channels
 
 uint16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
-uint16_t acceleration							// this is the speed multiplier
+uint16_t acceleration;							// this is the speed multiplier
+float velocity;
 uint16_t temp;									// temperature
-uint16_t temp_timer;							// temperature measurement timer
-uint16_t temp_interval = 1000;        			// the interval we want to get an updated temperature in milliseconds
 
 uint16_t alt_timer;								// altitude  measurement timer
 uint16_t alt_interval = 500;        			// the interval we want to get an updated altitude in milliseconds
+
+uint16_t takeoff_test_timer;
+uint16_t takeoff_test_increments = 2000;
+bool takeoff_test_reverse = false;
 
 double baseline; 								// baseline pressure
 double default_elevation = 13.93;				// elevation of the location
@@ -110,20 +113,19 @@ double getPressure()
 
 void initESCs(){
 	// hardcoded, remove once we have the RC
-	motor1.write(160);
-	motor2.write(160);
-	motor3.write(160);
-	motor4.write(160);
+	motor1.write(180);
+	motor2.write(180);
+	motor3.write(180);
+	motor4.write(180);
 	delay(2000);
-	motor1.write(60);
-	motor2.write(60);
-	motor3.write(60);
-	motor4.write(60);
+	motor1.write(0);
+	motor2.write(0);
+	motor3.write(0);
+	motor4.write(0);
 	delay(2000);
 }
 
 void initMPU(){
-  //Wire.begin();	// dont think we need this
   mpu.initialize();
   devStatus = mpu.dmpInitialize();
 //  mpu.setXGyroOffset(220); // 220
@@ -152,8 +154,8 @@ void initMotors(){
   pinMode(LED_PIN, OUTPUT);
 
   motor1.attach(MOTOR_FWD_L_PIN);
-  motor2.attach(MOTOR_FWD_R_PIN);
-  motor3.attach(MOTOR_BCK_L_PIN);
+  motor2.attach(MOTOR_BCK_L_PIN);
+  motor3.attach(MOTOR_FWD_R_PIN);
   motor4.attach(MOTOR_BCK_R_PIN);
 
   delay(boot_delay*0.5);
@@ -164,8 +166,10 @@ void initMotors(){
 void initPID(){
   Input_Pitch = 0;
   Input_Roll = 0;
-  myPID_P.SetMode(AUTOMATIC);
-  myPID_R.SetMode(AUTOMATIC);
+  myPID_P.SetMode(REVERSE);
+  myPID_R.SetMode(REVERSE);
+  myPID_A.SetMode(REVERSE);
+
   myPID_P.SetOutputLimits(MAX_PITCH*-1,MAX_PITCH);
   myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
 }
@@ -255,9 +259,8 @@ void updateAltimeter(){
 
 	if (holdAltitude){
 		Input_Altitude = altitude;
-		myPID_A.SetMode(AUTOMATIC);
-		myPID_A.Compute();
-	}}
+	}
+}
 
 void updatePID(){
   Input_Roll = ypr[2] * 180/M_PI;
@@ -266,8 +269,11 @@ void updatePID(){
   // Compute PID values
   myPID_P.Compute();
   myPID_R.Compute();
-  myPID_A.Compute();
 
+
+	if (holdAltitude){
+		myPID_A.Compute();
+	}
 
   float posPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,MINSPEED,MAXSPEED);
   float posRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,MINSPEED,MAXSPEED);
@@ -338,6 +344,30 @@ void updateDebugView(){
 //	}
 //}
 
+void test_takeoff(){
+
+	if ((unsigned long)(millis()-takeoff_test_timer)>=takeoff_test_increments){
+		takeoff_test_timer = millis();
+		if (mFL>=50||mFR>=50||mBL>=50||mBR>=50){
+			takeoff_test_reverse = true;
+		}
+	}
+
+	if(takeoff_test_reverse){
+		velocity-=0.1;
+	} else {
+		velocity+=0.1;
+	}
+
+
+	mFL=(mFL*velocity);
+	mFR=(mFR*velocity);
+	mBL=(mBL*velocity);
+	mBR=(mBR*velocity);
+
+
+
+}
 
 
 //////////////////////////////////////////////
@@ -355,6 +385,13 @@ void setup() {
 }
 
 void loop() {
+	while(!mpuInterrupt && fifoCount < packetSize){
+
+	/* Do nothing while MPU is not working
+	 * This should be a VERY short period
+	 */
+
+	}
 //	updateControllerInput();
   if ((unsigned long)(millis()-alt_timer)>=alt_interval){
 	  alt_timer = millis();
@@ -362,6 +399,7 @@ void loop() {
   }
 	updateYPR();
 	updatePID();
+//	test_takeoff();
 	updateMotors();
 	//  updateLog();
 	updateDebugView();

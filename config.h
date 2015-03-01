@@ -27,6 +27,7 @@ const int RC3_PIN = 32;			// remote channel 3
 #define MAX_YAW 180
 
 #define MINSPEED 20
+#define TAKEOFF_SPEED 60
 #define MAXSPEED 180
 
 //////////////// PID CONFIG /////////////
@@ -38,8 +39,8 @@ const int RC3_PIN = 32;			// remote channel 3
 #define ROLL_I_VAL 0.654    //0.654 // 5
 #define ROLL_D_VAL 0.008    //0.008 // 1
 
-#define ALTITUDE_P_VAL 2    //0.168 // 2
-#define ALTITUDE_I_VAL 5    //0.654 // 5
+#define ALTITUDE_P_VAL 1    //0.168 // 2
+#define ALTITUDE_I_VAL 1    //0.654 // 5
 #define ALTITUDE_D_VAL 1    //0.008 // 1
 
 #define YAW_P_VAL 0.00    //2
