@@ -10,7 +10,7 @@
 
 ///////////// MISC  CONFIG  ///////////////
 #define RC_ROUNDING_BASE 50
-
+const uint16_t DELAY_ARM = 2000;                  	// delay for arming the motors : default = 2000
 ///////////// PIN CONFIG //////////////////
 #define LED_BLUE_PIN 13
 #define LED_RED_PIN 14
@@ -22,6 +22,10 @@
 #define MOTOR_BCK_L_PIN 5
 #define MOTOR_BCK_R_PIN 6
 
+#define ULTRASONIC_TRIGGER_PIN 38
+#define ULTRASONIC_ECHO_PIN 40
+
+
 const int RC1_PIN = 36;			// remote channel 1
 const int RC2_PIN = 36;			// remote channel 2
 const int RC3_PIN = 32;			// remote channel 3
@@ -32,8 +36,9 @@ const int RC3_PIN = 32;			// remote channel 3
 #define MAX_YAW 180
 
 #define MINSPEED 20
-#define TAKEOFF_SPEED 60
+#define TAKEOFF_SPEED 35
 #define MAXSPEED 180
+const uint8_t ULTRASONIC_SAFE_DISTANCE = 60;
 
 //////////////// PID CONFIG /////////////
 #define PITCH_P_VAL 0.168  //0.168 // 0.5

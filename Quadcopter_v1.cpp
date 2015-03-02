@@ -46,13 +46,12 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 float yprLast[3] = {0.0f, 0.0f, 0.0f};
 
 float ch1, ch2, ch3, ch4, ch5;         			// RC channel inputs
-
-uint16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
+												// ch1: pitch | ch2: roll | ch3: speed
 float velocity,velocityLast;
-uint16_t temp;									// temperature
 
+uint16_t temp;									// temperature
 uint16_t alt_timer;								// altitude  measurement timer
-uint16_t alt_interval = 500;        			// the interval we want to get an updated altitude in milliseconds
+uint16_t alt_interval = 50;        			// the interval we want to get an updated altitude in milliseconds
 
 uint16_t test_timer;
 uint16_t test_length = 13000;
@@ -61,19 +60,13 @@ uint16_t takeoff_test_timer;
 uint16_t takeoff_test_increments = 2000;
 bool takeoff_test_reverse = false;
 
-double baseline; 								// baseline pressure
-double default_elevation = 13.93;				// elevation of the location
-double altitude;								// relative altitude
-double absolute_altitude;						// absolute altitude
-bool holdAltitude = false;						// is hold altitude selected?
-
+long ultrasonic_duration, ultrasonic_distance;
+int64_t baseline; 								// baseline pressure
+int64_t default_elevation = 13.93;				// elevation of the location
+double altitude,absolute_altitude,altitude_comp;// relative and absolute altitude
+bool hold_altitude_status = false;				// is hold altitude selected?
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
-
-float bal_axes;                       // throttle balance between axes -100:ac , +100:bd
-
-int va, vb, vc, vd;                    //velocities
-int v_ac, v_bd;                        // velocity of axes
 
 //////////////////////////////////////////////
 ///////////// UTILITY  FUNCTIONS  ////////////
@@ -127,12 +120,12 @@ void initESCs(){
 	motor2.write(180);
 	motor3.write(180);
 	motor4.write(180);
-	delay(boot_delay);
+	delay(DELAY_ARM);
 	motor1.write(0);
 	motor2.write(0);
 	motor3.write(0);
 	motor4.write(0);
-	delay(boot_delay);
+	delay(DELAY_ARM);
 }
 
 void initMPU(){
@@ -156,9 +149,13 @@ void initMPU(){
 void initAltimeter(){
   if (pressure.begin()){
   } else {
+	digitalWrite(LED_RED_PIN,HIGH);
 	while(1); // Pause forever.
   }
   baseline = getPressure();
+
+  pinMode(ULTRASONIC_TRIGGER_PIN,OUTPUT);
+  pinMode(ULTRASONIC_ECHO_PIN,INPUT);
 }
 
 void initMotors(){
@@ -273,8 +270,26 @@ void updateAltimeter(){
 	}
 	absolute_altitude=default_elevation+altitude;
 
-	if (holdAltitude){
-		Input_Altitude = altitude;
+	if (hold_altitude_status){
+		Setpoint_Altitude = altitude;
+	}
+
+	if (altitude<=ULTRASONIC_SAFE_DISTANCE){
+		digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
+		delayMicroseconds(2);
+		digitalWrite(ULTRASONIC_TRIGGER_PIN, HIGH);
+		delayMicroseconds(10);
+		digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
+		ultrasonic_duration = pulseIn(ULTRASONIC_ECHO_PIN, HIGH,8000);
+		if (!ultrasonic_duration==0){
+			ultrasonic_distance = ((ultrasonic_duration/2) / 29.1);
+			if (ultrasonic_distance>0){
+				altitude_comp = altitude * 0.2 + ((ultrasonic_distance*0.01) * 0.8);
+				} else {
+					altitude_comp = altitude;}
+		}
+	} else {
+		altitude_comp = altitude;
 	}
 }
 
@@ -287,7 +302,8 @@ void updatePID(){
   myPID_R.Compute();
 
 
-	if (holdAltitude){
+	if (hold_altitude_status){
+		Input_Altitude = altitude;
 		myPID_A.Compute();
 	}
 
@@ -309,21 +325,19 @@ void updatePID(){
 }
 
 void updateVelocity(){
-	ch3=1600;
-	//	ch3 = floor(ch3/RC_ROUNDING_BASE)*RC_ROUNDING_BASE;
+	ch3=1640;ch3 = floor(ch3/RC_ROUNDING_BASE)*RC_ROUNDING_BASE;
 	velocity = map(ch3, RXLo, RXHi, MINSPEED, MAXSPEED);
-//	if((velocity < MINSPEED) || (velocity > MAXSPEED)) velocity = velocityLast;
-//	  velocityLast = velocity;
+	if((velocity < MINSPEED) || (velocity > MAXSPEED)) velocity = velocityLast;
+	  velocityLast = velocity;
 
 	  mFL=mFL*(velocity*0.01);
 	  mFR=mFR*(velocity*0.01);
 	  mBL=mBL*(velocity*0.01);
 	  mBR=mBR*(velocity*0.01);
-
-	  mFL = map(mFL,0,170,MINSPEED,MAXSPEED);
-	  mFR = map(mFR,0,170,MINSPEED,MAXSPEED);
-	  mBL = map(mBL,0,170,MINSPEED,MAXSPEED);
-	  mBR = map(mBR,0,170,MINSPEED,MAXSPEED);
+//	  mFL = map(mFL,0,170,MINSPEED,MAXSPEED);
+//	  mFR = map(mFR,0,170,MINSPEED,MAXSPEED);
+//	  mBL = map(mBL,0,170,MINSPEED,MAXSPEED);
+//	  mBR = map(mBR,0,170,MINSPEED,MAXSPEED);
 }
 
 void updateMotors(){
@@ -356,7 +370,7 @@ void updateDebugView(){
   Serial.print(",");
   Serial.print(PITCH_D_VAL);
   Serial.print(",");
-  Serial.print(altitude);
+  Serial.print(altitude_comp);
   Serial.print(",");
   Serial.print(absolute_altitude);
   Serial.print(",");
@@ -377,6 +391,10 @@ void updateDebugView(){
 //		mylog.close();
 //	}
 //}
+
+//////////////////////////////////////////////
+///////////// TEST  FUNCTIONS  ///////////////
+//////////////////////////////////////////////
 
 void test_takeoff(){
 
@@ -444,11 +462,11 @@ void loop() {
 	updateYPR();
 	updatePID();
 	updateVelocity();
-//	test_propeller_idle();
 	updateMotors();
-	//  updateLog();
+
 	#ifdef DEBUG
 	updateDebugView();
+	//  updateLog();
 	#endif
 }
 
