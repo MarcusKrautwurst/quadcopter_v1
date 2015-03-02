@@ -5,11 +5,16 @@
 // It is very important to not use PIN 10 for anything, 
 // its unfortunately reserved for the SD library
 
-///////////// I2C  CONFIG  //////////////
+///////////// I2C  CONFIG  ////////////////
 #define I2C_ADRESS_MPU 0x69
 
-///////////// PIN CONFIG /////////////
-#define LED_PIN 13
+///////////// MISC  CONFIG  ///////////////
+#define RC_ROUNDING_BASE 50
+
+///////////// PIN CONFIG //////////////////
+#define LED_BLUE_PIN 13
+#define LED_RED_PIN 14
+#define LED_GREEN_PIN 15
 #define SD_PIN 53
 #define SD_TMP_PIN 10
 #define MOTOR_FWD_L_PIN 3
@@ -53,5 +58,6 @@ const int RXHi=1640;
 const int RXDeadLo=1265;
 const int RXDeadHi=1295;
 const int RXMid=1280;
+
 
 #endif
