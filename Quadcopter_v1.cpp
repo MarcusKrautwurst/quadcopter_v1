@@ -68,6 +68,11 @@ bool hold_altitude_status = false;				// is hold altitude selected?
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
 
+<<<<<<< HEAD
+=======
+                  			// velocity of axes
+
+>>>>>>> origin/master
 //////////////////////////////////////////////
 ///////////// UTILITY  FUNCTIONS  ////////////
 //////////////////////////////////////////////
