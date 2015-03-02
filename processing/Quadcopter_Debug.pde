@@ -4,7 +4,7 @@ import processing.serial.*;
 Serial myPort; // The serial port
 int xPos = 1; // horizontal position of the graph
 int xPosLines = 1;
-float var1Remap,var2Remap,var3Remap,var4Remap;
+float var1Remap,var2Remap,var3Remap,var4Remap,altRemap;
 float var1,var2,var3,var4;
 float old1,old2,old3,old4;
 int thickness = 200;
@@ -54,11 +54,11 @@ void serialEvent (Serial myPort)
      float aa = inputs[11];
      float mem = inputs[12];
      
-    var1Remap = map(var1,0,255,height*0.2,(height*0.2)+thickness);
-    var2Remap = map(var2,0,255,height*0.3,(height*0.3)+thickness);
-    var3Remap = map(var3,0,255,height*0.4,(height*0.4)+thickness);
-    var4Remap = map(var4,0,255,height*0.5,(height*0.5)+thickness);
-  
+    var1Remap = map(var1,0,180,height*0.2,(height*0.2)+thickness);
+    var2Remap = map(var2,0,180,height*0.3,(height*0.3)+thickness);
+    var3Remap = map(var3,0,180,height*0.4,(height*0.4)+thickness);
+    var4Remap = map(var4,0,180,height*0.5,(height*0.5)+thickness);
+    
     float errorsum = ((abs(128-var1)+abs(128-var2)+abs(128-var3)+abs(128-var4)));
     float error = round(errorsum/abs(errorsum-512)*100);
     
@@ -141,16 +141,16 @@ void serialEvent (Serial myPort)
     rect(110,height*0.94,210,height*0.96);
     
     fill(var1,0,0);
-    rect(0,height*0.86,var1/2.55,height*0.88);
+    rect(0,height*0.86,var1/1.8,height*0.88);
    
     fill(0,var2,0);
-    rect(110,height*0.86,110+var2/2.55,height*0.88);
+    rect(110,height*0.86,110+var2/1.8,height*0.88);
  
     fill(0,var3,var3);
-    rect(0,height*0.94,var3/2.55,height*0.96);
+    rect(0,height*0.94,var3/1.8,height*0.96);
     
     fill(var4,var4,0);
-    rect(110,height*0.94,110+var4/2.55,height*0.96);
+    rect(110,height*0.94,110+var4/1.8,height*0.96);
 
     // graph lines:
     stroke(var1, 0, 0);
@@ -177,6 +177,10 @@ void serialEvent (Serial myPort)
     rect(width-80, 0,width, height*0.8);
     
     rectMode(CORNERS);
+    
+    fill(255);
+    rect(width-100,height,width-80,height-(aa*10)-100);
+    
     fill(var1,0,0);
     rect(width-80,0,width-70,var1*2);
    
@@ -204,4 +208,3 @@ void serialEvent (Serial myPort)
       }
   }
 }
-
