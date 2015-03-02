@@ -1,6 +1,7 @@
 #include "Quadcopter_v1.h"
 #include "config.h"
 
+#define DEBUG
 
 MPU6050 mpu(I2C_ADRESS_MPU);	// IMU
 SFE_BMP180 pressure;			// Barometric sensor
@@ -14,11 +15,11 @@ Servo motor4;
 double Setpoint_Pitch, Input_Pitch, Output_Pitch;
 double Setpoint_Roll, Input_Roll, Output_Roll;
 double Setpoint_Altitude, Input_Altitude, Output_Altitude;
+         // motor balances can vary between -100 & 100
 
 PID myPID_P(&Input_Pitch, &Output_Pitch, &Setpoint_Pitch,PITCH_P_VAL,PITCH_I_VAL,PITCH_D_VAL, DIRECT);
 PID myPID_R(&Input_Roll, &Output_Roll, &Setpoint_Roll,ROLL_P_VAL,ROLL_I_VAL,ROLL_D_VAL, DIRECT);
 PID myPID_A(&Input_Altitude, &Output_Altitude, &Setpoint_Altitude,ALTITUDE_P_VAL,ALTITUDE_I_VAL,ALTITUDE_D_VAL, DIRECT);
-
 
 
 
@@ -44,15 +45,17 @@ float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 float yprLast[3] = {0.0f, 0.0f, 0.0f};
 
-int ch[4];  //Rx channels
+float ch1, ch2, ch3, ch4, ch5;         			// RC channel inputs
 
 uint16_t boot_delay = 2000;                  	// delay for arming the motors : default = 2000
-uint16_t acceleration;							// this is the speed multiplier
-float velocity;
+float velocity,velocityLast;
 uint16_t temp;									// temperature
 
 uint16_t alt_timer;								// altitude  measurement timer
 uint16_t alt_interval = 500;        			// the interval we want to get an updated altitude in milliseconds
+
+uint16_t test_timer;
+uint16_t test_length = 13000;
 
 uint16_t takeoff_test_timer;
 uint16_t takeoff_test_increments = 2000;
@@ -67,6 +70,11 @@ bool holdAltitude = false;						// is hold altitude selected?
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
 
+float bal_axes;                       // throttle balance between axes -100:ac , +100:bd
+
+int va, vb, vc, vd;                    //velocities
+int v_ac, v_bd;                        // velocity of axes
+
 //////////////////////////////////////////////
 ///////////// UTILITY  FUNCTIONS  ////////////
 //////////////////////////////////////////////
@@ -79,6 +87,8 @@ void blinkLED(byte targetPin, int numBlinks, int blinkRate) {
     delay(blinkRate);
   }
 }
+
+
 
 void dmpDataReady() {
   mpuInterrupt = true;
@@ -117,12 +127,12 @@ void initESCs(){
 	motor2.write(180);
 	motor3.write(180);
 	motor4.write(180);
-	delay(2000);
+	delay(boot_delay);
 	motor1.write(0);
 	motor2.write(0);
 	motor3.write(0);
 	motor4.write(0);
-	delay(2000);
+	delay(boot_delay);
 }
 
 void initMPU(){
@@ -140,6 +150,7 @@ void initMPU(){
     packetSize = mpu.dmpGetFIFOPacketSize();
   }
 
+
 }
 
 void initAltimeter(){
@@ -151,16 +162,17 @@ void initAltimeter(){
 }
 
 void initMotors(){
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(LED_BLUE_PIN, OUTPUT);
+  pinMode(LED_RED_PIN, OUTPUT);
+  pinMode(LED_GREEN_PIN,OUTPUT);
 
   motor1.attach(MOTOR_FWD_L_PIN);
   motor2.attach(MOTOR_BCK_L_PIN);
   motor3.attach(MOTOR_FWD_R_PIN);
   motor4.attach(MOTOR_BCK_R_PIN);
 
-  delay(boot_delay*0.5);
-  blinkLED(LED_PIN,3,100);
-  delay(boot_delay*0.5);
+  blinkLED(LED_GREEN_PIN,3,100);
+  digitalWrite(LED_GREEN_PIN,HIGH);
 }
 
 void initPID(){
@@ -170,8 +182,8 @@ void initPID(){
   myPID_R.SetMode(REVERSE);
   myPID_A.SetMode(REVERSE);
 
-  myPID_P.SetOutputLimits(MAX_PITCH*-1,MAX_PITCH);
-  myPID_R.SetOutputLimits(MAX_ROLL*-1,MAX_ROLL);
+  myPID_P.SetOutputLimits(-100,100);
+  myPID_R.SetOutputLimits(-100,100);
 }
 
 //void initLogging(){
@@ -192,6 +204,7 @@ void motorStop(){
 	analogWrite(MOTOR_FWD_R_PIN,0);
 	analogWrite(MOTOR_BCK_L_PIN,0);
 	analogWrite(MOTOR_BCK_R_PIN,0);
+	digitalWrite(LED_RED_PIN,HIGH);
 }
 
 //////////////////////////////////////////////
@@ -199,25 +212,26 @@ void motorStop(){
 //////////////////////////////////////////////
 
 void updateControllerInput(){
-	ch[0] = pulseIn(RC1_PIN,HIGH,25000);
-	ch[1] = pulseIn(RC2_PIN,HIGH,25000);
-	ch[2] = pulseIn(RC3_PIN,HIGH,25000);
-	blinkLED(LED_PIN,1,1);	// with this we can visualise RC signals
+	ch1 = pulseIn(RC1_PIN,HIGH,25000);
+	ch2 = pulseIn(RC2_PIN,HIGH,25000);
+	ch3 = pulseIn(RC3_PIN,HIGH,25000);
+	blinkLED(LED_BLUE_PIN,1,1);	// with this we can visualise RC signals
+
 
 	 //Input Signal trimming
-	for (int i=0; i<=8; i++) {
-		if (ch[i] <= RXLo){
-			ch[i] = RXLo;
-		}
-
-		if (ch[i] <= RXDeadHi && ch[i] >= RXDeadLo) {
-		ch[i] = RXMid;
-		}
-
-		if (ch[i] >= RXHi) {
-		 ch[i] = RXHi;
-		}
-	}
+//	for (int i=0; i<=8; i++) {
+//		if (ch[i] <= RXLo){
+//			ch[i] = RXLo;
+//		}
+//
+//		if (ch[i] <= RXDeadHi && ch[i] >= RXDeadLo) {
+//		ch[i] = RXMid;
+//		}
+//
+//		if (ch[i] >= RXHi) {
+//		 ch[i] = RXHi;
+//		}
+//	}
 	// once we have the RC, uncomment this 
 	//  Setpoint_Pitch = map(ch[0],RXLo,RXHi,MAX_PITCH*-1,MAX_PITCH);
 	//  Setpoint_Roll = map(ch[1],RXLo,RXHi,MAX_ROLL*-1,MAX_ROLL);
@@ -227,7 +241,9 @@ void updateControllerInput(){
 
 void updateYPR(){
     if (!dmpReady) return;
-    while (!mpuInterrupt && fifoCount < packetSize) {}
+    while (!mpuInterrupt && fifoCount < packetSize) {
+    	blinkLED(LED_RED_PIN,1,3);
+    }
     mpuInterrupt = false;
     mpuIntStatus = mpu.getIntStatus();
     fifoCount = mpu.getFIFOCount();
@@ -243,7 +259,7 @@ void updateYPR(){
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
     blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);
+    digitalWrite(LED_BLUE_PIN, blinkState);
   }
 }
 
@@ -275,10 +291,10 @@ void updatePID(){
 		myPID_A.Compute();
 	}
 
-  float posPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,MINSPEED,MAXSPEED);
-  float posRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,MINSPEED,MAXSPEED);
-  float negPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,MAXSPEED,MINSPEED);
-  float negRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,MAXSPEED,MINSPEED);
+  float posPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,0,100);
+  float posRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,0,100);
+  float negPitch = map(Output_Pitch,MAX_PITCH*-1,MAX_PITCH,100,0);
+  float negRoll = map(Output_Roll,MAX_ROLL*-1,MAX_ROLL,100,0);
 
 
   mFL=(posRoll+negPitch)*0.5;
@@ -286,10 +302,28 @@ void updatePID(){
   mBL=(negRoll+negPitch)*0.5;
   mBR=(negRoll+posPitch)*0.5;
 
-  mFL = constrain(mFL,MINSPEED,MAXSPEED);
-  mFR = constrain(mFR,MINSPEED,MAXSPEED);
-  mBL = constrain(mBL,MINSPEED,MAXSPEED);
-  mBR = constrain(mBR,MINSPEED,MAXSPEED);
+  mFL = constrain(mFL,0,100);
+  mFR = constrain(mFR,0,100);
+  mBL = constrain(mBL,0,100);
+  mBR = constrain(mBR,0,100);
+}
+
+void updateVelocity(){
+	ch3=1600;
+	//	ch3 = floor(ch3/RC_ROUNDING_BASE)*RC_ROUNDING_BASE;
+	velocity = map(ch3, RXLo, RXHi, MINSPEED, MAXSPEED);
+//	if((velocity < MINSPEED) || (velocity > MAXSPEED)) velocity = velocityLast;
+//	  velocityLast = velocity;
+
+	  mFL=mFL*(velocity*0.01);
+	  mFR=mFR*(velocity*0.01);
+	  mBL=mBL*(velocity*0.01);
+	  mBR=mBR*(velocity*0.01);
+
+	  mFL = map(mFL,0,170,MINSPEED,MAXSPEED);
+	  mFR = map(mFR,0,170,MINSPEED,MAXSPEED);
+	  mBL = map(mBL,0,170,MINSPEED,MAXSPEED);
+	  mBR = map(mBR,0,170,MINSPEED,MAXSPEED);
 }
 
 void updateMotors(){
@@ -369,29 +403,39 @@ void test_takeoff(){
 
 }
 
+void test_propeller_idle(){
+	if ((unsigned long)millis()>=test_length){
+		mFL=0;
+		mFR=0;
+		mBL=0;
+		mBR=0;
+	} else {
+		mFL=4;
+		mFR=4;
+		mBL=4;
+		mBR=4;
+	}
+}
+
 
 //////////////////////////////////////////////
 /////////////// MAIN  FUNCTIONS  /////////////
 //////////////////////////////////////////////
 
 void setup() {
-  Serial.begin(115200);
-  initAltimeter();
-  initMPU();
-  initMotors();
-  initESCs();
-  initPID();
+	#ifdef DEBUG
+	Serial.begin(115200);
+	Serial.flush();
+	initAltimeter();
+	initMPU();
+	initMotors();
+	initESCs();
+	initPID();
+	#endif
 //  initLogging();
 }
 
 void loop() {
-	while(!mpuInterrupt && fifoCount < packetSize){
-
-	/* Do nothing while MPU is not working
-	 * This should be a VERY short period
-	 */
-
-	}
 //	updateControllerInput();
   if ((unsigned long)(millis()-alt_timer)>=alt_interval){
 	  alt_timer = millis();
@@ -399,10 +443,13 @@ void loop() {
   }
 	updateYPR();
 	updatePID();
-//	test_takeoff();
+	updateVelocity();
+//	test_propeller_idle();
 	updateMotors();
 	//  updateLog();
+	#ifdef DEBUG
 	updateDebugView();
+	#endif
 }
 
 
