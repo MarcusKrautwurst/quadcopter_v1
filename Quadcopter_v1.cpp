@@ -70,10 +70,7 @@ bool holdAltitude = false;						// is hold altitude selected?
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
 
-float bal_axes;                       // throttle balance between axes -100:ac , +100:bd
-
-int va, vb, vc, vd;                    //velocities
-int v_ac, v_bd;                        // velocity of axes
+                  			// velocity of axes
 
 //////////////////////////////////////////////
 ///////////// UTILITY  FUNCTIONS  ////////////
