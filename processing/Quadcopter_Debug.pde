@@ -12,6 +12,7 @@ PFont f;
 float y = 0.1;
 float x = 0.1;
 float z = 0.1;
+String TextAltitudeStatus;
 
 void setup () 
 {
@@ -39,7 +40,7 @@ void serialEvent (Serial myPort)
    input = input.replaceFirst("-", ""); 
 
    float inputs[] = float(split(input, ','));
-   if(inputs.length == 13){
+   if(inputs.length == 14){
      float var1 = inputs[0];
      float var2 = inputs[1];
      float var3 = inputs[2];
@@ -53,6 +54,7 @@ void serialEvent (Serial myPort)
      float a = inputs[10];
      float aa = inputs[11];
      float mem = inputs[12];
+     float altitude_status = inputs[13];     
      
     var1Remap = map(var1,0,180,height*0.2,(height*0.2)+thickness);
     var2Remap = map(var2,0,180,height*0.3,(height*0.3)+thickness);
@@ -93,7 +95,8 @@ void serialEvent (Serial myPort)
     String textAlt = "Rel. Altitude: " + a;
     String textAbsAlt = "Abs. Altitude: " + aa;
     String textM = "Free Memory: " + mem;
-    
+    String TextAltitudeStatus = "Altitude Instr.: " + altitude_status; 
+
     
     fill(255, 0, 0); 
     text(text1,0,height*0.85);
@@ -116,11 +119,11 @@ void serialEvent (Serial myPort)
     text(textP,700,height*0.85);   
     text(textI,700,height*0.89);   
     text(textD,700,height*0.93);  
-    
+    text(textM,700,height*0.97);
    
     text(textAbsAlt,960,height*0.85);
     text(textAlt,960,height*0.89);
-    text(textM,960,height*0.93);
+    text(TextAltitudeStatus,960,height*0.93);
     
     
     
