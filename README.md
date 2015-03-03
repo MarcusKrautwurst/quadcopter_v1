@@ -1,6 +1,6 @@
 # Arduino Mega Quadcopter
 ![Arduino Mega Quadcopter](http://033310b.netsolhost.com/Arduino/wp-content/uploads/2011/02/arduino-banner.jpg)
-(https://github.com/MarcusKrautwurst/quadcopter_v1/blob/master/schematics/fullbuild.png)
+[](https://github.com/MarcusKrautwurst/quadcopter_v1/blob/master/schematics/fullbuild.png)
 ***
 
 
