@@ -65,6 +65,7 @@ int64_t baseline; 								// baseline pressure
 int64_t default_elevation = 13.93;				// elevation of the location
 double altitude,absolute_altitude,altitude_comp;// relative and absolute altitude
 bool hold_altitude_status = false;				// is hold altitude selected?
+float altitude_status;							// debug variable to determine what instrument is being used for altitude detection
 
 int16_t	mFL,mFR,mBL,mBR;                     	// Our 4 motor variables
 
@@ -85,8 +86,8 @@ void blinkLED(byte targetPin, int numBlinks, int blinkRate) {
 void fatalError(String error_message){
 	while(1){
 		#ifdef DEBUG
-		Serial.println("FATAL ERROR:")
-		Serial.print(error_message)
+		Serial.println("FATAL ERROR:");
+		Serial.print(error_message);
 		#endif
 		digitalWrite(LED_RED,HIGH);
 	}
@@ -277,29 +278,28 @@ void updateAltimeter(){
 	if (altitude <= 0.1){		// this might be a bad idea, since we dont know if we get lower than start height
 		altitude=0.0;
 	}
-	absolute_altitude=default_elevation+altitude;
+
 
 	if (hold_altitude_status){
 		Setpoint_Altitude = altitude;
 	}
 
-	if (altitude<=ULTRASONIC_SAFE_DISTANCE){
-		digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
-		delayMicroseconds(2);
-		digitalWrite(ULTRASONIC_TRIGGER_PIN, HIGH);
-		delayMicroseconds(10);
-		digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
-		ultrasonic_duration = pulseIn(ULTRASONIC_ECHO_PIN, HIGH,ULTRASONIC_TIMEOUT);
-		if (!ultrasonic_duration==0){
-			ultrasonic_distance = ((ultrasonic_duration/2) / 29.1);
-			if (ultrasonic_distance>0){
-				// If we are within a range of the ultrasonic sensor, use a complementary filter of ultrasonic sensor and barometric pressure
-				altitude_comp = altitude * 0.2 + ((ultrasonic_distance*0.01) * 0.8);
-				} else {
-					altitude_comp = altitude;}
-		}
+	digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
+	delayMicroseconds(2);
+	digitalWrite(ULTRASONIC_TRIGGER_PIN, HIGH);
+	delayMicroseconds(10);
+	digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
+	ultrasonic_duration = pulseIn(ULTRASONIC_ECHO_PIN, HIGH,ULTRASONIC_TIMEOUT);
+	if (!ultrasonic_duration==	0){
+		ultrasonic_distance = ((ultrasonic_duration/2) / 29.1);
+		// If we are within range on the ultrasonic sensor, use a complementary filter of ultrasonic sensor and barometric pressure
+		altitude_comp = ultrasonic_distance*0.01;
+		absolute_altitude=default_elevation+altitude_comp;
+		altitude_status = 1.0;
 	} else {
 		altitude_comp = altitude;
+		absolute_altitude=default_elevation+altitude;
+		altitude_status = 2.0;
 	}
 }
 
@@ -335,7 +335,8 @@ void updatePID(){
 }
 
 void updateVelocity(){
-	ch3=1640;ch3 = floor(ch3/RC_ROUNDING_BASE)*RC_ROUNDING_BASE;
+	ch3=1640;	// once we have RC set this through the rc input
+	ch3 = floor(ch3/RC_ROUNDING_BASE)*RC_ROUNDING_BASE;
 	velocity = map(ch3, RXLo, RXHi, MINSPEED, MAXSPEED);
 	if((velocity < MINSPEED) || (velocity > MAXSPEED)) velocity = velocityLast;
 	  velocityLast = velocity;
@@ -344,10 +345,6 @@ void updateVelocity(){
 	  mFR=mFR*(velocity*0.01);
 	  mBL=mBL*(velocity*0.01);
 	  mBR=mBR*(velocity*0.01);
-//	  mFL = map(mFL,0,170,MINSPEED,MAXSPEED);
-//	  mFR = map(mFR,0,170,MINSPEED,MAXSPEED);
-//	  mBL = map(mBL,0,170,MINSPEED,MAXSPEED);
-//	  mBR = map(mBR,0,170,MINSPEED,MAXSPEED);
 }
 
 void updateMotors(){
@@ -385,6 +382,8 @@ void updateDebugView(){
   Serial.print(absolute_altitude);
   Serial.print(",");
   Serial.print(freeMemory());
+  Serial.print(",");
+  Serial.print(altitude_status,DEC);
   Serial.print("-");
 }
 

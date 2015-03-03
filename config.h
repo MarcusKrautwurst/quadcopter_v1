@@ -29,8 +29,7 @@ const uint16_t DELAY_ARM = 2000; // delay for arming the motors : default = 2000
 ///////////// ULTRASONIC CONFIG //////////////////
 #define ULTRASONIC_TRIGGER_PIN 38
 #define ULTRASONIC_ECHO_PIN 40
-#define ULTRASONIC_TIMEOUT 10000
-const uint8_t ULTRASONIC_SAFE_DISTANCE = 172;		// we calculated this based on 1cm pulse = 58microseconds
+#define ULTRASONIC_TIMEOUT 3000	// 10000 is around 1.72 meters
 
 ///////////// FLIGHT CONFIG /////////////
 #define MAX_PITCH 30
