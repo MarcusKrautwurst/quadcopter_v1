@@ -2,33 +2,35 @@
 #define _config_H_
 
 ///////////// IMPORTANT NOTES /////////////
+
 // It is very important to not use PIN 10 for anything, 
 // its unfortunately reserved for the SD library
 
-///////////// I2C  CONFIG  ////////////////
+///////////// I2C  CONFIG  ///////////////////
 #define I2C_ADRESS_MPU 0x69
 
-///////////// MISC  CONFIG  ///////////////
+/////////////// MISC  CONFIG  /////////////////
 #define RC_ROUNDING_BASE 50
-const uint16_t DELAY_ARM = 2000;                  	// delay for arming the motors : default = 2000
-///////////// PIN CONFIG //////////////////
-#define LED_BLUE_PIN 13
-#define LED_RED_PIN 14
-#define LED_GREEN_PIN 15
+const uint16_t DELAY_ARM = 2000; // delay for arming the motors : default = 2000
+
+///////////////// PIN CONFIG ///////////////////
+#define LED_BLUE 13
+#define LED_RED 14
+#define LED_GREEN 15
 #define SD_PIN 53
 #define SD_TMP_PIN 10
+
+/////////////// MOTOR CONFIG ////////////////////
 #define MOTOR_FWD_L_PIN 3
 #define MOTOR_FWD_R_PIN 4
 #define MOTOR_BCK_L_PIN 5
 #define MOTOR_BCK_R_PIN 6
 
+///////////// ULTRASONIC CONFIG //////////////////
 #define ULTRASONIC_TRIGGER_PIN 38
 #define ULTRASONIC_ECHO_PIN 40
-
-
-const int RC1_PIN = 36;			// remote channel 1
-const int RC2_PIN = 36;			// remote channel 2
-const int RC3_PIN = 32;			// remote channel 3
+#define ULTRASONIC_TIMEOUT 10000
+const uint8_t ULTRASONIC_SAFE_DISTANCE = 172;		// we calculated this based on 1cm pulse = 58microseconds
 
 ///////////// FLIGHT CONFIG /////////////
 #define MAX_PITCH 30
@@ -38,7 +40,7 @@ const int RC3_PIN = 32;			// remote channel 3
 #define MINSPEED 20
 #define TAKEOFF_SPEED 35
 #define MAXSPEED 180
-const uint8_t ULTRASONIC_SAFE_DISTANCE = 60;
+
 
 //////////////// PID CONFIG /////////////
 #define PITCH_P_VAL 0.168  //0.168 // 0.5
@@ -58,6 +60,10 @@ const uint8_t ULTRASONIC_SAFE_DISTANCE = 60;
 #define YAW_D_VAL 0.00    //1
 
 ///////////// RC CONFIG /////////////
+const int RC1_PIN = 36;			// remote channel 1
+const int RC2_PIN = 36;			// remote channel 2
+const int RC3_PIN = 32;			// remote channel 3
+
 const int RXLo=920;
 const int RXHi=1640;
 const int RXDeadLo=1265;
