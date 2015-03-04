@@ -3,6 +3,7 @@
 
 #define DEBUG
 
+
 MPU6050 mpu(I2C_ADRESS_MPU);	// IMU
 SFE_BMP180 pressure;			// Barometric sensor
 
@@ -51,7 +52,7 @@ float velocity,velocityLast;
 
 uint16_t temp;									// temperature
 uint16_t alt_timer;								// altitude  measurement timer
-uint16_t alt_interval = 50;        			// the interval we want to get an updated altitude in milliseconds
+uint16_t alt_interval = 300;        			// the interval we want to get an updated altitude in milliseconds
 
 uint16_t test_timer;
 uint16_t test_length = 13000;
@@ -114,10 +115,18 @@ double getPressure()
         if (status != 0){
         	temp = T;
         	return(P);
-        } else fatalError("Barometric pressure sensor problem");}
-      else fatalError("Barometric pressure sensor problem");}
-    else fatalError("Barometric pressure sensor problem");}
-  else fatalError("Barometric pressure sensor problem");
+        } else {
+        	fatalError("Barometric pressure sensor problem");
+			return 0;}
+      } else {
+    	  fatalError("Barometric pressure sensor problem");
+    	  return 0;}
+    } else {
+    	fatalError("Barometric pressure sensor problem");
+    	return 0;}
+  } else {
+	  fatalError("Barometric pressure sensor problem");
+	  return 0;}
 }
 
 //////////////////////////////////////////////
@@ -271,37 +280,51 @@ void updateYPR(){
 }
 
 void updateAltimeter(){
-	double P;
-	P = getPressure();
-	altitude = pressure.altitude(P,baseline);
-	
-	if (altitude <= 0.1){		// this might be a bad idea, since we dont know if we get lower than start height
-		altitude=0.0;
-	}
-
-
-	if (hold_altitude_status){
-		Setpoint_Altitude = altitude;
-	}
-
 	digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
 	delayMicroseconds(2);
 	digitalWrite(ULTRASONIC_TRIGGER_PIN, HIGH);
 	delayMicroseconds(10);
 	digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
 	ultrasonic_duration = pulseIn(ULTRASONIC_ECHO_PIN, HIGH,ULTRASONIC_TIMEOUT);
-	if (!ultrasonic_duration==	0){
-		ultrasonic_distance = ((ultrasonic_duration/2) / 29.1);
+	ultrasonic_distance = ((ultrasonic_duration/2) / 29.1);
+	if (ultrasonic_distance<=ULTRASONIC_MAX_DISTANCE&&ultrasonic_distance!=0){
 		// If we are within range on the ultrasonic sensor, use a complementary filter of ultrasonic sensor and barometric pressure
 		altitude_comp = ultrasonic_distance*0.01;
-		absolute_altitude=default_elevation+altitude_comp;
 		altitude_status = 1.0;
+
 	} else {
-		altitude_comp = altitude;
-		absolute_altitude=default_elevation+altitude;
+		double P;
+		P = getPressure();
+		altitude_comp = pressure.altitude(P,baseline);
+
+		if (altitude_comp <= 0.1){		// this might be a bad idea, since we dont know if we get lower than start height
+			altitude_comp=0.0;
+		}
 		altitude_status = 2.0;
 	}
+
+	absolute_altitude=default_elevation+altitude_comp;
+
+	if (hold_altitude_status){
+		Setpoint_Altitude = altitude;
+
+	}
 }
+
+//void updateAltimeter(){
+//	double P;
+//	P = getPressure();
+//	altitude = pressure.altitude(P,baseline);
+//
+//	if (altitude <= 0.1){		// this might be a bad idea, since we dont know if we get lower than start height
+//		altitude=0.0;
+//	}
+//	absolute_altitude=default_elevation+altitude;
+//
+//	if (hold_altitude_status){
+//		Input_Altitude = altitude;
+//	}
+//}
 
 void updatePID(){
   Input_Roll = ypr[2] * 180/M_PI;
@@ -313,7 +336,7 @@ void updatePID(){
 
 
 	if (hold_altitude_status){
-		Input_Altitude = altitude;
+		Input_Altitude = ch3;
 		myPID_A.Compute();
 	}
 

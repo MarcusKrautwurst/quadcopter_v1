@@ -13,6 +13,7 @@
 #define RC_ROUNDING_BASE 50
 const uint16_t DELAY_ARM = 2000; // delay for arming the motors : default = 2000
 
+
 ///////////////// PIN CONFIG ///////////////////
 #define LED_BLUE 13
 #define LED_RED 14
@@ -30,7 +31,7 @@ const uint16_t DELAY_ARM = 2000; // delay for arming the motors : default = 2000
 #define ULTRASONIC_TRIGGER_PIN 38
 #define ULTRASONIC_ECHO_PIN 40
 #define ULTRASONIC_TIMEOUT 3000	// 10000 is around 1.72 meters
-
+float ULTRASONIC_MAX_DISTANCE=ULTRASONIC_TIMEOUT/58;
 ///////////// FLIGHT CONFIG /////////////
 #define MAX_PITCH 30
 #define MAX_ROLL 30
