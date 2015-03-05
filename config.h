@@ -27,12 +27,15 @@ const uint16_t DELAY_ARM = 2000; // delay for arming the motors : default = 2000
 #define MOTOR_BCK_L_PIN 5
 #define MOTOR_BCK_R_PIN 6
 
-///////////// ULTRASONIC CONFIG //////////////////
+///////////// ALTIMETER CONFIG //////////////////
 #define ULTRASONIC_TRIGGER_PIN 38
 #define ULTRASONIC_ECHO_PIN 40
-#define ULTRASONIC_TIMEOUT 3000	// 10000 is around 1.72 meters
+#define ULTRASONIC_TIMEOUT 3000		// 10000 is around 1.72 meters
 float ULTRASONIC_MAX_DISTANCE=ULTRASONIC_TIMEOUT/58;
-///////////// FLIGHT CONFIG /////////////
+
+#define BAROMETER_RESOLUTION 2		// 1=ultra low power | 2=standard | 3= high resolution | 4=ultra high resolution
+
+///////////// FLIGHT PARAMETERS /////////////
 #define MAX_PITCH 30
 #define MAX_ROLL 30
 #define MAX_YAW 180
