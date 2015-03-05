@@ -108,25 +108,48 @@ double getPressure()
     delay(status);
     status = pressure.getTemperature(T);
     if (status != 0){
-      status = pressure.startPressure(3);
+      status = pressure.startPressure(BAROMETER_RESOLUTION);
       if (status != 0){
         delay(status);
         status = pressure.getPressure(P,T);
         if (status != 0){
         	temp = T;
         	return(P);
-        } else {
-        	fatalError("Barometric pressure sensor problem");
-			return 0;}
-      } else {
-    	  fatalError("Barometric pressure sensor problem");
-    	  return 0;}
-    } else {
-    	fatalError("Barometric pressure sensor problem");
-    	return 0;}
-  } else {
-	  fatalError("Barometric pressure sensor problem");
-	  return 0;}
+        } else return 0;}
+      else return 0;}
+    else return 0;}
+  else return 0;
+}
+
+typedef struct {
+  double q; //process noise covariance
+  double r; //measurement noise covariance
+  double x; //value
+  double p; //estimation error covariance
+  double k; //kalman gain
+} kalman_state;
+
+
+double kalman_init(double q, double r, double p, double initial_value){
+	kalman_state result;
+	result.q = q;
+	result.r = r;
+	result.p = p;
+	result.x = initial_value;
+	return result;
+}
+
+void
+kalman_update(kalman_state* state, double measurement)
+{
+  //prediction update
+  //omit x = x
+  state->p = state->p + state->q;
+
+  //measurement update
+  state->k = state->p / (state->p + state->r);
+  state->x = state->x + state->k * (measurement - state->x);
+  state->p = (1 - state->k) * state->p;
 }
 
 //////////////////////////////////////////////
@@ -280,6 +303,10 @@ void updateYPR(){
 }
 
 void updateAltimeter(){
+//	if (altitude_comp>0){
+//		kalman_init(altitude_comp)
+//	}
+
 	digitalWrite(ULTRASONIC_TRIGGER_PIN, LOW);
 	delayMicroseconds(2);
 	digitalWrite(ULTRASONIC_TRIGGER_PIN, HIGH);
@@ -294,8 +321,11 @@ void updateAltimeter(){
 
 	} else {
 		double P;
+		double *temp_altitude;
 		P = getPressure();
-		altitude_comp = pressure.altitude(P,baseline);
+		temp_altitude = pressure.altitude(P,baseline);
+		altitude_comp = kalman_update(*temp_altitude)
+
 
 		if (altitude_comp <= 0.1){		// this might be a bad idea, since we dont know if we get lower than start height
 			altitude_comp=0.0;
@@ -476,13 +506,13 @@ void setup() {
 	#ifdef DEBUG
 	Serial.begin(115200);
 	Serial.flush();
+	#endif
+
 	initAltimeter();
 	initMPU();
 	initMotors();
 	initESCs();
 	initPID();
-	#endif
-//  initLogging();
 }
 
 void loop() {
